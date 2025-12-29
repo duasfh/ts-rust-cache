@@ -1,0 +1,12 @@
+{
+  "name": "ltsrust-cache",
+  "author": "duasfh",
+  "version": "0.1.0",
+  "scripts": {
+  },
+  "keywords": [
+    "library", "wasm", "rust", "cache", "shared", "shared memory"
+  ],
+  "license": "ISC",
+  "packageManager": "pnpm@10.21.0"
+}
