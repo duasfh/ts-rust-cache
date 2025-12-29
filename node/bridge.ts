@@ -3,17 +3,72 @@ import fs from 'fs'
 const wasm = fs.readFileSync(new URL('../rs/target/wasm32-unknown-unknown/release/ltsrust_cache.wasm', import.meta.url))
 const { instance } = await WebAssembly.instantiate(wasm)
 
-// didn't find a way to properly `declare` via `.d.ts` for wasm
-type RustCacheModule = {
-  mutate(a: number): void
+const rs = instance.exports as WebAssembly.Instance['exports'] & {
+  has: (key: string) => boolean
+  set_int: (key: string, value: number) => void
+  get_int: (key: string) => number | undefined
+  del_int: (key: string) => void
+  clear: () => void
+  get_size: () => number
+  get_mem: () => number
 }
 
-const mutate = (ar: number[]) => {
-  const mem = new Int32Array(instance.exports.memory.buffer)
-  const index = 0
-  mem[index] = 42
+/** @max 2147483647 */
+const setInt32 = (num: number) => {}
 
-  instance.exports.mutate(index * 4)
+const getInt32 = (key: string) => {
+  if (!rs.has(key)) return undefined
+  return rs.get_int(key)
 }
 
-export const cache = instance.exports as RustCacheModule
+/**
+ * @description IEEE-754 Double
+ * @note fits ~15–16 decimal digits
+ * */
+const setFloat = (num: number) => {}
+
+const setString = (str: string) => {}
+
+const deleteKey = (key: string) => {}
+
+const clear = () => {}
+
+const configute = (conf: never) => {
+  throw new Error('e_not_implemented')
+}
+
+// todo
+const __debugError = () => {}
+
+const utilGetSize = () => {
+  return rs.get_size()
+}
+
+const utilGetMem = () => {}
+
+const debug_full = () => {
+  console.log(rs.get_size())
+  console.log(rs.get_mem())
+
+  // rs.clear()
+  // rs.del_int('c')
+
+  console.log(getInt32('a'))
+  rs.set_int('a', 23)
+  console.log(getInt32('a'))
+
+  console.log(rs.get_size())
+  console.log(rs.get_mem())
+  rs.del_int('a')
+  console.log(getInt32('a'))
+
+  rs.set_int('b', 24)
+  console.log(getInt32('b'))
+  rs.clear()
+  console.log(getInt32('b'))
+
+  console.log(rs.get_size())
+  console.log(rs.get_mem())
+}
+
+debug_full()
