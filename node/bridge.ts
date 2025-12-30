@@ -1,11 +1,31 @@
 import fs from 'fs'
 
+let memory: WebAssembly.ExportValue
+const imports = {
+  console: {
+    now: () => {
+      return BigInt(Date.now())
+    },
+    log: (ptr: number, len: number) => {
+      console.log(readStringFromBuf(ptr, len))
+    },
+  },
+}
+
+const readStringFromBuf = (ptr: number, len: number) => {
+  // @ts-expect-error todo check why `buffer` is linted
+  const bytes = new Uint8Array(memory.buffer, ptr, len)
+  return new TextDecoder("utf-8").decode(bytes)
+}
+
 const wasm = fs.readFileSync(new URL('../rs/target/wasm32-unknown-unknown/release/ltsrust_cache.wasm', import.meta.url))
-const { instance } = await WebAssembly.instantiate(wasm)
+const { instance } = await WebAssembly.instantiate(wasm, imports)
+
+memory = instance.exports.memory
 
 const rs = instance.exports as WebAssembly.Instance['exports'] & {
   has: (key: string) => boolean
-  set_int: (key: string, value: number) => void
+  set_int: (key: string, value: number, ttl: BigInt) => void
   get_int: (key: string) => number
   del_int: (key: string) => void
   clear: () => void
@@ -17,7 +37,6 @@ const rs = instance.exports as WebAssembly.Instance['exports'] & {
 const setInt32 = (num: number) => {}
 
 const getInt32 = (key: string) => {
-  if (!rs.has(key)) return undefined
   return rs.get_int(key)
 }
 
@@ -50,39 +69,42 @@ const debug_full = () => {
   console.log(rs.get_size())
   console.log(rs.get_mem())
 
-  // rs.clear()
-  // rs.del_int('c')
+  rs.clear()
+  rs.del_int('c')
 
   console.log(getInt32('a'))
-  rs.set_int('a', 23)
+  rs.set_int('a', 23, BigInt(10000))
   console.log(getInt32('a'))
+  return
 
   console.log(rs.get_size())
   console.log(rs.get_mem())
   rs.del_int('a')
   console.log(getInt32('a'))
 
-  rs.set_int('b', 24)
+  rs.set_int('b', 24, BigInt(10000))
   console.log(getInt32('b'))
   rs.clear()
   console.log(getInt32('b'))
 
   console.log(rs.get_size())
   console.log(rs.get_mem())
+
+  // todo ttl
 }
 
 const debug_mem = () => {
   console.log(rs.get_size())
   console.log(rs.get_mem())
 
-  rs.set_int('a', 23)
+  rs.set_int('a', 23, BigInt(10000))
 
   console.log(rs.get_size())
   console.log(rs.get_mem())
 
-  rs.set_int('a', 24)
-  rs.set_int('b', 25)
-  rs.set_int('c', 26)
+  rs.set_int('a', 24, BigInt(10000))
+  rs.set_int('b', 25, BigInt(10000))
+  rs.set_int('c', 26, BigInt(10000))
 
   console.log(rs.get_size())
   console.log(rs.get_mem())
@@ -112,4 +134,4 @@ const debug_mem = () => {
   */
 }
 
-debug_mem()
+debug_full()
