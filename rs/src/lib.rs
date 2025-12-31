@@ -1,20 +1,15 @@
 use std::{
-  alloc::dealloc, collections::HashMap, fmt::Pointer, ptr, sync::{LazyLock, RwLock}, time::{Duration, Instant}
+  collections::HashMap,
+  sync::{LazyLock, RwLock},
 };
 use wasm_bindgen::prelude::*;
 
 const MAX_MEMORY_MB: usize = 128;
 
-// temp
-// #[link(wasm_import_module = "console")]
-// unsafe extern "C" {
-//   fn now() -> u64;
-//   fn log(ptr: *const u8, len: usize);
-// }
 #[wasm_bindgen]
 extern "C" {
-    #[wasm_bindgen(js_namespace = performance)]
-    fn now() -> f64;
+  #[wasm_bindgen(js_namespace = performance)]
+  fn now() -> f64;
 }
 
 // todo reconsider static size string to simplify and remove `MEM_USAGE`?
@@ -24,7 +19,6 @@ struct CacheEntry<V> {
   t_exp: f64,
 }
 
-// Note: doesn't include hashmap pointers, mem_usage integer, etc. Only hash content size
 static mut MEM_USAGE: usize = 0;
 static CACHE_INT: LazyLock<RwLock<HashMap<String, CacheEntry<i32>>>> = LazyLock::new(|| RwLock::new(HashMap::new()));
 
@@ -43,15 +37,12 @@ pub fn set_int(key: String, value: i32, ttl: i64) {
   let next_size = unsafe { MEM_USAGE + est_entry_size_int::<i32>(&key) };
   if next_size > MAX_MEMORY_MB { panic!("e_max_mem_reached"); }
 
-  // unsafe { log("hallo2".as_ptr(), 6); }
-
   let new_struct = CacheEntry {
-    value: value,
+    value,
     t_exp: now() + ttl as f64
   };
   CACHE_INT.write().unwrap()
     .insert(key, new_struct);
-  // unsafe { log("hallo3".as_ptr(), 6); }
 
   unsafe { MEM_USAGE = next_size; }
 }
@@ -60,13 +51,9 @@ pub fn set_int(key: String, value: i32, ttl: i64) {
 pub fn get_int(key: String) -> Option<i32> {
   let map = CACHE_INT.read().unwrap();
 
-  // unsafe { log("hallo0".as_ptr(), 6); }
   if !map.contains_key(&key) {
-    // unsafe { log("hallo8".as_ptr(), 6); }
     return None
   }
-
-  // unsafe { log("hallo2".as_ptr(), 6); }
 
   let entry = map.get(&key).unwrap();
 
@@ -74,8 +61,6 @@ pub fn get_int(key: String) -> Option<i32> {
     // del_int(key);  // causes deadlock
     return None
   }
-
-  // unsafe { log("hallo3".as_ptr(), 6); }
 
   return Some(entry.value)
 }
@@ -96,15 +81,13 @@ pub fn clear() {
   unsafe { MEM_USAGE = 0; }
 }
 
-// todo remove those; or add option with expired filter
-// ..or rename
 #[wasm_bindgen]
-pub fn get_size() -> usize {
+pub fn get_size_raw() -> usize {
   CACHE_INT.read().unwrap().len()
 }
 
 #[wasm_bindgen]
-pub fn get_mem() -> usize {
+pub fn get_mem_raw() -> usize {
   unsafe { return MEM_USAGE };
 }
 

@@ -4,8 +4,8 @@ import rs from './pkg/ltsrust_cache.js'
 
 
 const debug_full = () => {
-  console.log(rs.get_size())
-  console.log(rs.get_mem())
+  console.log(rs.get_size_raw())
+  console.log(rs.get_mem_raw())
 
   rs.clear()
   rs.del_int('c')
@@ -14,8 +14,8 @@ const debug_full = () => {
   rs.set_int('a', 23, BigInt(10000))
   console.log(rs.get_int('a'))
 
-  console.log(rs.get_size())
-  console.log(rs.get_mem())
+  console.log(rs.get_size_raw())
+  console.log(rs.get_mem_raw())
   rs.del_int('a')
   console.log(rs.get_int('a'))
 
@@ -24,37 +24,37 @@ const debug_full = () => {
   rs.clear()
   console.log(rs.get_int('b'))
 
-  console.log(rs.get_size())
-  console.log(rs.get_mem())
+  console.log(rs.get_size_raw())
+  console.log(rs.get_mem_raw())
 
   rs.clear()
 }
 
 const debug_mem = () => {
-  console.log(rs.get_size())
-  console.log(rs.get_mem())
+  console.log(rs.get_size_raw())
+  console.log(rs.get_mem_raw())
 
   rs.set_int('a', 23, BigInt(10000))
 
-  console.log(rs.get_size())
-  console.log(rs.get_mem())
+  console.log(rs.get_size_raw())
+  console.log(rs.get_mem_raw())
 
   rs.set_int('a', 24, BigInt(10000))
   rs.set_int('b', 25, BigInt(10000))
   rs.set_int('c', 26, BigInt(10000))
 
-  console.log(rs.get_size())
-  console.log(rs.get_mem())
+  console.log(rs.get_size_raw())
+  console.log(rs.get_mem_raw())
 
   rs.del_int('a')
 
-  console.log(rs.get_size())
-  console.log(rs.get_mem())
+  console.log(rs.get_size_raw())
+  console.log(rs.get_mem_raw())
 
   rs.clear()
 
-  console.log(rs.get_size())
-  console.log(rs.get_mem())
+  console.log(rs.get_size_raw())
+  console.log(rs.get_mem_raw())
 
   rs.clear()
 }
