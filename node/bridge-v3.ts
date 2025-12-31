@@ -12,6 +12,8 @@ const vtMap = {
   2: ValueType.Str,
 } as const
 
+let cleanupInterval: NodeJS.Timeout | undefined
+
 const vtFromBuf = (bufEl: number): ValueType => {
   if (bufEl !== 0 && bufEl !== 1 && bufEl !== 2) throw new Error()
   return vtMap[bufEl]
@@ -35,9 +37,8 @@ const decodeNumber = (buf: Uint8Array<ArrayBufferLike>) => {
 }
 
 const setString = (key: string, value: string, ttl: number) => {
-  // TextEncoder/Decoder is supported by all modern browsers.
-  // todo add doc, that users who needs to support older browsers need to add polyfil
-  // https://developer.mozilla.org/en-US/docs/Web/API/TextEncoder#browser_compatibility
+  if (!cleanupInterval) throw new Error('cache \'set\' is called after closing.')
+
   const encoder = new TextEncoder()
   const u8 = encoder.encode(value)
 
@@ -59,12 +60,31 @@ const get = (key: string) => {
   if (vtn === ValueType.Str) return decodeString(buf)
 }
 
-const debug = () => {
-  setNumber('a', 123, 1000)
-  console.log(get('a'))
-
-  setString('b', '23', 1000)
-  console.log(get('b'))
+const initIntervalCleanup = () => {
+  cleanupInterval = setInterval(() => {
+    rs.cleanup()
+  }, 60000)
 }
+
+const debug = async () => {
+  setNumber('a', 123, 50)
+  console.log(get('a'))
+  console.log(rs.get_size_raw())
+
+  await new Promise(r => setTimeout(r, 100))
+  rs.cleanup()
+
+  console.log(rs.get_size_raw())
+
+  close()
+}
+
+const close = () => {
+  cleanupInterval = clearInterval(cleanupInterval) as undefined
+  rs.clear()
+  // it doesn't actually unload wasm instance
+}
+
+initIntervalCleanup()
 
 debug()

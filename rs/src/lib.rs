@@ -10,6 +10,8 @@ const MAX_MEMORY_MB: usize = 128;
 extern "C" {
   #[wasm_bindgen(js_namespace = performance)]
   fn now() -> f64;
+  #[wasm_bindgen(js_namespace = console)]
+  fn log(str: &str);
 }
 
 // todo reconsider static size string to simplify and remove `MEM_USAGE`?
@@ -92,9 +94,6 @@ pub fn get(key: String) -> Option<Vec<u8>> {
     return None
   }
 
-  // return Some(
-  //   convert_cacheentry_to_dto(entry)
-  // )
   return Some(pack_cache_dto(entry));
 }
 
@@ -104,7 +103,7 @@ pub fn del(key: String) {
     return;
   }
 
-  let mut size = 0;
+  let size: usize;
   {
     let map = CACHE.read().unwrap();
     let entry = map.get(&key).unwrap();
@@ -131,4 +130,15 @@ pub fn get_mem_raw() -> usize {
   unsafe { return MEM_USAGE };
 }
 
-// todo interval-cleanup
+#[wasm_bindgen]
+pub fn cleanup() {
+  let now = now();
+  CACHE.write().unwrap().retain(
+    |_, e| e.t_exp > now
+  );
+}
+
+// #[wasm_bindgen]
+// pub fn dispose() {
+//   delete
+// }
