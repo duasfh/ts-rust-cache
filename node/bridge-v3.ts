@@ -53,20 +53,13 @@ const decodeString = (buf: Uint8Array<ArrayBufferLike>) => {
   return decoder.decode(buf)
 }
 
-const encMap = {
-  [ValueType.Bool]: (_: boolean) => { throw new Error('e_not_implemented') },
-  [ValueType.F64]: encodeNumber,
-  [ValueType.Str]: encodeString,
-  [ValueType.Obj]: (_: object) => { throw new Error('e_not_implemented') },
-} as const
-
-const getValueTypeFromValue = <V extends Value> (value: Value) => {
-  if (typeof value === 'boolean') return ValueType.Bool
+const getTypeAndBuffer = (value: Value): [ValueType, Uint8Array<ArrayBuffer>] => {
+  if (typeof value === 'boolean') throw new Error('e_not_implemented')
   if (typeof value === 'number') {
-    if (!isNaN(value)) return ValueType.F64
+    if (!isNaN(value)) return [ValueType.F64, encodeNumber(value)]
   }
-  if (typeof value === 'string') return ValueType.Str
-  if (typeof value === 'object') return ValueType.Obj
+  if (typeof value === 'string') return [ValueType.Str, encodeString(value)]
+  if (typeof value === 'object') throw new Error('e_not_implemented')
 
   throw new Error('e_unsupported_type')
 }
@@ -79,9 +72,7 @@ const set = (
 ) => {
   if (!cleanupInterval) throw new Error('cache \'set\' is called after closing.')
 
-  const vt = getValueTypeFromValue(value)
-  // @ts-expect-error todo fix typing, or simplify
-  const u8arr = encMap[vt](value)
+  const [vt, u8arr] = getTypeAndBuffer(value)
 
   rs.set(key, u8arr, vt, ttl)
 }
@@ -116,5 +107,23 @@ const close = () => {
 }
 
 initIntervalCleanup()
+
+export const cache = {
+  get,
+  set,
+  del: rs.del,
+  clear: rs.clear,
+
+  /** @description Current used memory of cache. Includes expired entries, which were not yet picked up by cleanup. */
+  getMemRaw: () => rs.get_mem_raw(),
+  /** @description Current count of items in cache. Includes expired entries, which were not yet picked up by cleanup. */
+  getSizeRaw: () => rs.get_size_raw(),
+
+  /**
+   * @description Clears cache and cancels cleanup interval. You wont be able to use the cache after calling `close`.
+   * @note Does not dispose wasm instance.
+   * */
+  close,
+}
 
 debug()
