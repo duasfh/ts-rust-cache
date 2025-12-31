@@ -14,47 +14,72 @@ extern "C" {
 
 // todo reconsider static size string to simplify and remove `MEM_USAGE`?
 
-struct CacheEntry<V: CacheValue> {
-  value: V,
+#[derive(Clone)]
+enum ValueType { Bool, F64, Str }
+
+struct CacheEntry {
+  vt: ValueType,
+  vbuf: Vec<u8>,
   t_exp: f64,
 }
 
-trait CacheValue {} // todo hm, or just store memory buffer directly??
-impl CacheValue for bool {}
-impl CacheValue for f64 {}
-impl CacheValue for String {}
-
 static mut MEM_USAGE: usize = 0;
-static CACHE_INT: LazyLock<RwLock<HashMap<String, CacheEntry<f64>>>> = LazyLock::new(|| RwLock::new(HashMap::new()));
+static CACHE: LazyLock<RwLock<HashMap<String, CacheEntry>>> = LazyLock::new(|| RwLock::new(HashMap::new()));
 
-fn est_entry_size_int<T: CacheValue>(key: &String) -> usize {
-  size_of::<CacheEntry<T>>()
+fn convert_u8_to_vt (t: u8) -> ValueType {
+  match t {
+    0 => Ok(ValueType::Bool),
+    1 => Ok(ValueType::F64),
+    2 => Ok(ValueType::Str),
+    _ => Err(())
+  }.unwrap()
+}
+
+fn convert_vt_to_u8 (vt: ValueType) -> u8 {
+  vt as u8
+}
+
+fn pack_cache_dto (ce: &CacheEntry) -> Vec<u8> {
+  let mut packed_vec = Vec::with_capacity(1 + ce.vbuf.len());
+
+  packed_vec.push(convert_vt_to_u8(ce.vt.clone()));
+  packed_vec.extend_from_slice(&ce.vbuf);
+
+  packed_vec
+}
+
+fn est_entry_size_int(key: &String, buf: &Vec<u8>) -> usize {
+  size_of::<CacheEntry>()
+  + buf.capacity()
   + key.capacity()
 }
 
 #[wasm_bindgen]
 pub fn has(key: String) -> bool {
-  CACHE_INT.read().unwrap().contains_key(&key)
+  CACHE.read().unwrap().contains_key(&key)
 }
 
 #[wasm_bindgen]
-pub fn set_float(key: String, value: f64, ttl: i64) {
-  let next_size = unsafe { MEM_USAGE + est_entry_size_int::<f64>(&key) };
+pub fn set(key: String, value: Vec<u8>, t: u8, ttl: f64) {
+  let vt = convert_u8_to_vt(t);
+
+  let next_size = unsafe { MEM_USAGE + est_entry_size_int(&key, &value) };
   if next_size > MAX_MEMORY_MB { panic!("e_max_mem_reached"); }
 
   let new_struct = CacheEntry {
-    value,
-    t_exp: now() + ttl as f64
+    vt,
+    vbuf: value,
+    t_exp: now() + ttl,
   };
-  CACHE_INT.write().unwrap()
+  CACHE.write().unwrap()
     .insert(key, new_struct);
 
   unsafe { MEM_USAGE = next_size; }
 }
 
 #[wasm_bindgen]
-pub fn get_float(key: String) -> Option<f64> {
-  let map = CACHE_INT.read().unwrap();
+pub fn get(key: String) -> Option<Vec<u8>> {
+  let map = CACHE.read().unwrap();
 
   if !map.contains_key(&key) {
     return None
@@ -67,28 +92,38 @@ pub fn get_float(key: String) -> Option<f64> {
     return None
   }
 
-  return Some(entry.value)
+  // return Some(
+  //   convert_cacheentry_to_dto(entry)
+  // )
+  return Some(pack_cache_dto(entry));
 }
 
 #[wasm_bindgen]
-pub fn del_float(key: String) {
+pub fn del(key: String) {
   if !has(key.clone()) {
     return;
   }
 
-  CACHE_INT.write().unwrap().remove(&key);
-  unsafe { MEM_USAGE -= est_entry_size_int::<f64>(&key) };
+  let mut size = 0;
+  {
+    let map = CACHE.read().unwrap();
+    let entry = map.get(&key).unwrap();
+    size = est_entry_size_int(&key, &entry.vbuf);
+  }
+
+  CACHE.write().unwrap().remove(&key);
+  unsafe { MEM_USAGE -= size };
 }
 
 #[wasm_bindgen]
 pub fn clear() {
-  CACHE_INT.write().unwrap().clear();
+  CACHE.write().unwrap().clear();
   unsafe { MEM_USAGE = 0; }
 }
 
 #[wasm_bindgen]
 pub fn get_size_raw() -> usize {
-  CACHE_INT.read().unwrap().len()
+  CACHE.read().unwrap().len()
 }
 
 #[wasm_bindgen]
@@ -97,15 +132,3 @@ pub fn get_mem_raw() -> usize {
 }
 
 // todo interval-cleanup
-
-// temp
-// enum CacheValueDyn {
-//   Bool(bool),
-//   I32(i32),
-//   F64(f64),
-//   Str(String),
-// }
-// #[wasm_bindgen]
-// pub fn get_dyn() -> CacheValueDyn {
-//   unsafe { return MEM_USAGE };
-// }
