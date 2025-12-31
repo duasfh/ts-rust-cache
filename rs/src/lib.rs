@@ -14,15 +14,20 @@ extern "C" {
 
 // todo reconsider static size string to simplify and remove `MEM_USAGE`?
 
-struct CacheEntry<V> {
+struct CacheEntry<V: CacheValue> {
   value: V,
   t_exp: f64,
 }
 
-static mut MEM_USAGE: usize = 0;
-static CACHE_INT: LazyLock<RwLock<HashMap<String, CacheEntry<i32>>>> = LazyLock::new(|| RwLock::new(HashMap::new()));
+trait CacheValue {} // todo hm, or just store memory buffer directly??
+impl CacheValue for bool {}
+impl CacheValue for f64 {}
+impl CacheValue for String {}
 
-fn est_entry_size_int<T>(key: &String) -> usize {
+static mut MEM_USAGE: usize = 0;
+static CACHE_INT: LazyLock<RwLock<HashMap<String, CacheEntry<f64>>>> = LazyLock::new(|| RwLock::new(HashMap::new()));
+
+fn est_entry_size_int<T: CacheValue>(key: &String) -> usize {
   size_of::<CacheEntry<T>>()
   + key.capacity()
 }
@@ -33,8 +38,8 @@ pub fn has(key: String) -> bool {
 }
 
 #[wasm_bindgen]
-pub fn set_int(key: String, value: i32, ttl: i64) {
-  let next_size = unsafe { MEM_USAGE + est_entry_size_int::<i32>(&key) };
+pub fn set_float(key: String, value: f64, ttl: i64) {
+  let next_size = unsafe { MEM_USAGE + est_entry_size_int::<f64>(&key) };
   if next_size > MAX_MEMORY_MB { panic!("e_max_mem_reached"); }
 
   let new_struct = CacheEntry {
@@ -48,7 +53,7 @@ pub fn set_int(key: String, value: i32, ttl: i64) {
 }
 
 #[wasm_bindgen]
-pub fn get_int(key: String) -> Option<i32> {
+pub fn get_float(key: String) -> Option<f64> {
   let map = CACHE_INT.read().unwrap();
 
   if !map.contains_key(&key) {
@@ -66,13 +71,13 @@ pub fn get_int(key: String) -> Option<i32> {
 }
 
 #[wasm_bindgen]
-pub fn del_int(key: String) {
+pub fn del_float(key: String) {
   if !has(key.clone()) {
     return;
   }
 
   CACHE_INT.write().unwrap().remove(&key);
-  unsafe { MEM_USAGE -= est_entry_size_int::<i32>(&key) };
+  unsafe { MEM_USAGE -= est_entry_size_int::<f64>(&key) };
 }
 
 #[wasm_bindgen]
@@ -92,3 +97,15 @@ pub fn get_mem_raw() -> usize {
 }
 
 // todo interval-cleanup
+
+// temp
+// enum CacheValueDyn {
+//   Bool(bool),
+//   I32(i32),
+//   F64(f64),
+//   Str(String),
+// }
+// #[wasm_bindgen]
+// pub fn get_dyn() -> CacheValueDyn {
+//   unsafe { return MEM_USAGE };
+// }
