@@ -35,7 +35,10 @@ const decodeNumber = (buf: Uint8Array<ArrayBufferLike>) => {
 }
 
 const setString = (key: string, value: string, ttl: number) => {
-  const encoder = new TextEncoder()  // todo browser compatibility
+  // TextEncoder/Decoder is supported by all modern browsers.
+  // todo add doc, that users who needs to support older browsers need to add polyfil
+  // https://developer.mozilla.org/en-US/docs/Web/API/TextEncoder#browser_compatibility
+  const encoder = new TextEncoder()
   const u8 = encoder.encode(value)
 
   rs.set(key, u8, ValueType.Str, ttl)
