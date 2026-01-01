@@ -139,8 +139,3 @@ pub fn cleanup() {
     |_, e| e.t_exp > now
   );
 }
-
-// #[wasm_bindgen]
-// pub fn dispose() {
-//   delete
-// }

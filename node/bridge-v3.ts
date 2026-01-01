@@ -21,9 +21,6 @@ const vtMap = {
 
 let cleanupInterval: NodeJS.Timeout | undefined
 
-// todo Date support
-// todo BigInt support??
-
 const isValueType = (vt: number): vt is ValueType =>
   !!ValueType[vt]
 
