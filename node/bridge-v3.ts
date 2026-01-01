@@ -1,20 +1,22 @@
 import rs from './pkg/ltsrust_cache.js'
 import { isSerializable } from './utils.js'
 
-type Value = boolean | number | string | object
+type Value = boolean | number | string | object | Date
 
 enum ValueType {
   Bool = 0,
   F64 = 1,
   Str = 2,
-  Obj = 3,
+  Obj = 16,
+  Date = 17,
 }
 
 const vtMap = {
   0: ValueType.Bool,
   1: ValueType.F64,
   2: ValueType.Str,
-  3: ValueType.Obj,
+  16: ValueType.Obj,
+  17: ValueType.Date,
 } as const
 
 let cleanupInterval: NodeJS.Timeout | undefined
@@ -35,7 +37,6 @@ const encodeNumber = (value: number) => {
   new DataView(buf).setFloat64(0, value, true)
   const u8arr = new Uint8Array(buf)
   return u8arr
-
 }
 
 const decodeNumber = (buf: Uint8Array<ArrayBufferLike>) => {
@@ -67,12 +68,24 @@ const decodeObject = (buf: Uint8Array<ArrayBufferLike>) => {
   return JSON.parse(decodeString(buf))
 }
 
+const encodeDate = (date: Date) => {
+  const ms = date.getTime()
+  return encodeNumber(ms)
+}
+
+const decodeDate = (buf: Uint8Array<ArrayBufferLike>) => {
+  const ms = decodeNumber(buf)
+  return new Date(ms)
+}
+
 const getTypeAndBuffer = (value: Value): [ValueType, Uint8Array<ArrayBuffer>] => {
   if (typeof value === 'boolean') throw new Error('e_not_implemented')
   if (typeof value === 'number') {
     if (!isNaN(value)) return [ValueType.F64, encodeNumber(value)]
   }
   if (typeof value === 'string') return [ValueType.Str, encodeString(value)]
+
+  if (value instanceof Date) return [ValueType.Date, encodeDate(value)]
   if (typeof value === 'object') return [ValueType.Obj, encodeObject(value)]
 
   throw new Error('e_unsupported_type')
@@ -101,6 +114,7 @@ const get = (key: string) => {
   if (vtn === ValueType.F64) return decodeNumber(buf)
   if (vtn === ValueType.Str) return decodeString(buf)
   if (vtn === ValueType.Obj) return decodeObject(buf)
+  if (vtn === ValueType.Date) return decodeDate(buf)
 
   throw new Error('Cache corrupted state. Cannot extract type.')
 }
@@ -112,11 +126,18 @@ const initIntervalCleanup = () => {
 }
 
 const debug = async () => {
+  set('a0', 120, 100)
+  console.log(get('a0'))
+
   const a = { a: '23', b: 24 }
   console.log(a)
 
   set('a', a, 100)
+  console.log('gi')
   console.log(get('a'))
+
+  set('d', new Date('1993'), 100)
+  console.log(get('d'))
 
   close()
 }

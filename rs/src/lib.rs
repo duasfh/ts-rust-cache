@@ -17,7 +17,7 @@ extern "C" {
 // todo reconsider static size string to simplify and remove `MEM_USAGE`?
 
 #[derive(Clone)]
-enum ValueType { Bool, F64, Str, Obj }
+enum ValueType { Bool, F64, Str, Obj = 16, Date = 17 }
 
 struct CacheEntry {
   vt: ValueType,
@@ -33,7 +33,8 @@ fn convert_u8_to_vt (t: u8) -> ValueType {
     0 => Ok(ValueType::Bool),
     1 => Ok(ValueType::F64),
     2 => Ok(ValueType::Str),
-    3 => Ok(ValueType::Obj),
+    16 => Ok(ValueType::Obj),
+    17 => Ok(ValueType::Date),
     _ => Err(())
   }.unwrap()
 }
