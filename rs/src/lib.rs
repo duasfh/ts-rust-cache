@@ -14,8 +14,6 @@ extern "C" {
   fn log(str: &str);
 }
 
-// todo reconsider static size string to simplify and remove `MEM_USAGE`?
-
 #[derive(Clone)]
 enum ValueType { Bool, F64, Str, Obj = 16, Date = 17 }
 
@@ -92,7 +90,6 @@ pub fn get(key: String) -> Option<Vec<u8>> {
   let entry = map.get(&key).unwrap();
 
   if entry.t_exp < now() {
-    // del_int(key);  // causes deadlock
     return None
   }
 

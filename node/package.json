@@ -10,11 +10,8 @@
     "@types/node": "^25.0.3"
   },
   "keywords": [
-    "library",
-    "wasm",
     "rust",
-    "cache",
-    "shared",
-    "shared memory"
+    "wasm",
+    "cache"
   ]
 }
