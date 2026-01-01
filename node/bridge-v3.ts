@@ -1,4 +1,5 @@
 import rs from './pkg/ltsrust_cache.js'
+import { isSerializable } from './utils.js'
 
 type Value = boolean | number | string | object
 
@@ -13,6 +14,7 @@ const vtMap = {
   0: ValueType.Bool,
   1: ValueType.F64,
   2: ValueType.Str,
+  3: ValueType.Obj,
 } as const
 
 let cleanupInterval: NodeJS.Timeout | undefined
@@ -20,8 +22,11 @@ let cleanupInterval: NodeJS.Timeout | undefined
 // todo Date support
 // todo BigInt support??
 
+const isValueType = (vt: number): vt is ValueType =>
+  !!ValueType[vt]
+
 const vtFromBuf = (bufEl: number): ValueType => {
-  if (bufEl !== 0 && bufEl !== 1 && bufEl !== 2) throw new Error()
+  if (!isValueType(bufEl)) throw new Error()
   return vtMap[bufEl]
 }
 
@@ -45,12 +50,21 @@ const encodeString = (value: string) => {
   const encoder = new TextEncoder()
   const u8arr = encoder.encode(value)
   return u8arr
-
 }
 
 const decodeString = (buf: Uint8Array<ArrayBufferLike>) => {
   const decoder = new TextDecoder()
   return decoder.decode(buf)
+}
+
+const encodeObject = (obj: object) => {
+  if (!isSerializable(obj)) throw new Error('e_obj_nonserializable')
+
+  return encodeString(JSON.stringify(obj))
+}
+
+const decodeObject = (buf: Uint8Array<ArrayBufferLike>) => {
+  return JSON.parse(decodeString(buf))
 }
 
 const getTypeAndBuffer = (value: Value): [ValueType, Uint8Array<ArrayBuffer>] => {
@@ -59,7 +73,7 @@ const getTypeAndBuffer = (value: Value): [ValueType, Uint8Array<ArrayBuffer>] =>
     if (!isNaN(value)) return [ValueType.F64, encodeNumber(value)]
   }
   if (typeof value === 'string') return [ValueType.Str, encodeString(value)]
-  if (typeof value === 'object') throw new Error('e_not_implemented')
+  if (typeof value === 'object') return [ValueType.Obj, encodeObject(value)]
 
   throw new Error('e_unsupported_type')
 }
@@ -86,7 +100,7 @@ const get = (key: string) => {
   if (vtn === ValueType.Bool) throw new Error('e_not_implemented')
   if (vtn === ValueType.F64) return decodeNumber(buf)
   if (vtn === ValueType.Str) return decodeString(buf)
-  if (vtn === ValueType.Obj) return JSON.parse(decodeString(buf))
+  if (vtn === ValueType.Obj) return decodeObject(buf)
 
   throw new Error('Cache corrupted state. Cannot extract type.')
 }
@@ -98,6 +112,12 @@ const initIntervalCleanup = () => {
 }
 
 const debug = async () => {
+  const a = { a: '23', b: 24 }
+  console.log(a)
+
+  set('a', a, 100)
+  console.log(get('a'))
+
   close()
 }
 
