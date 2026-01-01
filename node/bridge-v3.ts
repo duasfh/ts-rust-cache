@@ -28,7 +28,7 @@ const isValueType = (vt: number): vt is ValueType =>
   !!ValueType[vt]
 
 const vtFromBuf = (bufEl: number): ValueType => {
-  if (!isValueType(bufEl)) throw new Error()
+  if (!isValueType(bufEl)) throw new Error('Cache corrupted state. Cannot extract type.')
   return vtMap[bufEl]
 }
 
@@ -103,6 +103,14 @@ const getTypeAndBuffer = (value: Value): [ValueType, Uint8Array<ArrayBuffer>] =>
   throw new Error('e_unsupported_type')
 }
 
+const decodeFMap: Record<ValueType, (buf: Uint8Array<ArrayBufferLike>) => Value> = {
+  [ValueType.Bool]: decodeBool,
+  [ValueType.F64]: decodeNumber,
+  [ValueType.Str]: decodeString,
+  [ValueType.Obj]: decodeObject,
+  [ValueType.Date]: decodeDate,
+}
+
 const set = (
   key: string,
   value: Value,
@@ -122,29 +130,15 @@ const get = (key: string) => {
 
   const vtn = vtFromBuf(packedEntry[0])
   const buf = packedEntry.slice(1)
-  if (vtn === ValueType.Bool) return decodeBool(buf)
-  if (vtn === ValueType.F64) return decodeNumber(buf)
-  if (vtn === ValueType.Str) return decodeString(buf)
-  if (vtn === ValueType.Obj) return decodeObject(buf)
-  if (vtn === ValueType.Date) return decodeDate(buf)
 
-  throw new Error('Cache corrupted state. Cannot extract type.')
+  const decodeF = decodeFMap[vtn]
+  return decodeF(buf)
 }
 
 const initIntervalCleanup = () => {
   cleanupInterval = setInterval(() => {
     rs.cleanup()
   }, 60000)
-}
-
-const debug = async () => {
-  set('b', true, 100)
-  console.log(get('b'))
-
-  set('b', false, 100)
-  console.log(get('b'))
-
-  close()
 }
 
 const close = () => {
@@ -171,5 +165,3 @@ export const cache = {
    * */
   close,
 }
-
-debug()
