@@ -1,137 +1,164 @@
-import fs from 'fs'
+import rs from './pkg/ltsrust_cache.js'
+import { isSerializable } from './utils.js'
 
-let memory: WebAssembly.ExportValue
-const imports = {
-  console: {
-    now: () => {
-      return BigInt(Date.now())
-    },
-    log: (ptr: number, len: number) => {
-      console.log(readStringFromBuf(ptr, len))
-    },
-  },
+type Value = boolean | number | string | object | Date
+
+enum ValueType {
+  Bool = 0,
+  F64 = 1,
+  Str = 2,
+  Obj = 16,
+  Date = 17,
 }
 
-const readStringFromBuf = (ptr: number, len: number) => {
-  // @ts-expect-error todo check why `buffer` is linted
-  const bytes = new Uint8Array(memory.buffer, ptr, len)
-  return new TextDecoder("utf-8").decode(bytes)
+const vtMap = {
+  0: ValueType.Bool,
+  1: ValueType.F64,
+  2: ValueType.Str,
+  16: ValueType.Obj,
+  17: ValueType.Date,
+} as const
+
+let cleanupInterval: NodeJS.Timeout | undefined
+
+const isValueType = (vt: number): vt is ValueType =>
+  !!ValueType[vt]
+
+const vtFromBuf = (bufEl: number): ValueType => {
+  if (!isValueType(bufEl)) throw new Error('Cache corrupted state. Cannot extract type.')
+  return vtMap[bufEl]
 }
 
-const wasm = fs.readFileSync(new URL('../rs/target/wasm32-unknown-unknown/release/ltsrust_cache.wasm', import.meta.url))
-const { instance } = await WebAssembly.instantiate(wasm, imports)
-
-memory = instance.exports.memory
-
-const rs = instance.exports as WebAssembly.Instance['exports'] & {
-  has: (key: string) => boolean
-  set_int: (key: string, value: number, ttl: BigInt) => void
-  get_int: (key: string) => number
-  del_int: (key: string) => void
-  clear: () => void
-  get_size: () => number
-  get_mem: () => number
+const encodeBool = (value: boolean) => {
+  const u8arr = new Uint8Array(1)
+  u8arr[0] = +value
+  // yep, 254 extra bits, for cost of uniformity/simplicity
+  // for rest of the types
+  return u8arr
 }
 
-/** @max 2147483647 */
-const setInt32 = (num: number) => {}
-
-const getInt32 = (key: string) => {
-  return rs.get_int(key)
+const decodeBool = (buf: Uint8Array<ArrayBufferLike>) => {
+  return !!buf[0]
 }
 
-/**
- * @description IEEE-754 Double
- * @note fits ~15–16 decimal digits
- * */
-const setFloat = (num: number) => {}
-
-const setString = (str: string) => {}
-
-const deleteKey = (key: string) => {}
-
-const clear = () => {}
-
-const configute = (conf: never) => {
-  throw new Error('e_not_implemented')
+const encodeNumber = (value: number) => {
+  const buf = new ArrayBuffer(8)
+  new DataView(buf).setFloat64(0, value, true)
+  const u8arr = new Uint8Array(buf)
+  return u8arr
 }
 
-// todo
-const __debugError = () => {}
-
-const utilGetSize = () => {
-  return rs.get_size()
+const decodeNumber = (buf: Uint8Array<ArrayBufferLike>) => {
+  return new DataView(
+    buf.buffer,
+    buf.byteOffset,
+    buf.byteLength,
+  ).getFloat64(0, true);
 }
 
-const utilGetMem = () => {}
+const encodeString = (value: string) => {
+  const encoder = new TextEncoder()
+  const u8arr = encoder.encode(value)
+  return u8arr
+}
 
-const debug_full = () => {
-  console.log(rs.get_size())
-  console.log(rs.get_mem())
+const decodeString = (buf: Uint8Array<ArrayBufferLike>) => {
+  const decoder = new TextDecoder()
+  return decoder.decode(buf)
+}
 
+const encodeObject = (value: object) => {
+  if (!isSerializable(value)) throw new Error('e_obj_nonserializable')
+
+  return encodeString(JSON.stringify(value))
+}
+
+const decodeObject = (buf: Uint8Array<ArrayBufferLike>) => {
+  return JSON.parse(decodeString(buf))
+}
+
+const encodeDate = (value: Date) => {
+  const ms = value.getTime()
+  return encodeNumber(ms)
+}
+
+const decodeDate = (buf: Uint8Array<ArrayBufferLike>) => {
+  const ms = decodeNumber(buf)
+  return new Date(ms)
+}
+
+const getTypeAndBuffer = (value: Value): [ValueType, Uint8Array<ArrayBuffer>] => {
+  if (typeof value === 'boolean') return [ValueType.Bool, encodeBool(value)]
+  if (typeof value === 'number') {
+    if (!isNaN(value)) return [ValueType.F64, encodeNumber(value)]
+  }
+  if (typeof value === 'string') return [ValueType.Str, encodeString(value)]
+
+  if (value instanceof Date) return [ValueType.Date, encodeDate(value)]
+  if (typeof value === 'object') return [ValueType.Obj, encodeObject(value)]
+
+  throw new Error('e_unsupported_type')
+}
+
+const decodeFMap: Record<ValueType, (buf: Uint8Array<ArrayBufferLike>) => Value> = {
+  [ValueType.Bool]: decodeBool,
+  [ValueType.F64]: decodeNumber,
+  [ValueType.Str]: decodeString,
+  [ValueType.Obj]: decodeObject,
+  [ValueType.Date]: decodeDate,
+}
+
+const set = (
+  key: string,
+  value: Value,
+  /** ms */
+  ttl: number
+) => {
+  if (!cleanupInterval) throw new Error('cache \'set\' is called after closing.')
+
+  const [vt, u8arr] = getTypeAndBuffer(value)
+
+  rs.set(key, u8arr, vt, ttl)
+}
+
+const get = (key: string) => {
+  const packedEntry = rs.get(key)
+  if (!packedEntry) return undefined
+
+  const vtn = vtFromBuf(packedEntry[0])
+  const buf = packedEntry.slice(1)
+
+  const decodeF = decodeFMap[vtn]
+  return decodeF(buf)
+}
+
+const initIntervalCleanup = () => {
+  cleanupInterval = setInterval(() => {
+    rs.cleanup()
+  }, 60000)
+}
+
+const close = () => {
+  cleanupInterval = clearInterval(cleanupInterval) as undefined
   rs.clear()
-  rs.del_int('c')
-
-  console.log(getInt32('a'))
-  rs.set_int('a', 23, BigInt(10000))
-  console.log(getInt32('a'))
-  return
-
-  console.log(rs.get_size())
-  console.log(rs.get_mem())
-  rs.del_int('a')
-  console.log(getInt32('a'))
-
-  rs.set_int('b', 24, BigInt(10000))
-  console.log(getInt32('b'))
-  rs.clear()
-  console.log(getInt32('b'))
-
-  console.log(rs.get_size())
-  console.log(rs.get_mem())
-
-  // todo ttl
 }
 
-const debug_mem = () => {
-  console.log(rs.get_size())
-  console.log(rs.get_mem())
+initIntervalCleanup()
 
-  rs.set_int('a', 23, BigInt(10000))
+export const cache = {
+  get,
+  set,
+  del: rs.del,
+  clear: rs.clear,
 
-  console.log(rs.get_size())
-  console.log(rs.get_mem())
-
-  rs.set_int('a', 24, BigInt(10000))
-  rs.set_int('b', 25, BigInt(10000))
-  rs.set_int('c', 26, BigInt(10000))
-
-  console.log(rs.get_size())
-  console.log(rs.get_mem())
-
-  rs.del_int('a')
-
-  console.log(rs.get_size())
-  console.log(rs.get_mem())
-
-  rs.clear()
-
-  console.log(rs.get_size())
-  console.log(rs.get_mem())
+  /** @description Current used memory of cache. Includes expired entries, which were not yet picked up by cleanup. */
+  getMemRaw: () => rs.get_mem_raw(),
+  /** @description Current count of items in cache. Includes expired entries, which were not yet picked up by cleanup. */
+  getSizeRaw: () => rs.get_size_raw(),
 
   /**
-    ->
-    0
-    0
-    1
-    16
-    1
-    64
-    0
-    48
-    0
-    0
-  */
+   * @description Clears cache and cancels cleanup interval. You wont be able to use the cache after calling `close`.
+   * @note Does not dispose wasm instance.
+   * */
+  close,
 }
-
-debug_full()
