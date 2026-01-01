@@ -32,6 +32,18 @@ const vtFromBuf = (bufEl: number): ValueType => {
   return vtMap[bufEl]
 }
 
+const encodeBool = (value: boolean) => {
+  const u8arr = new Uint8Array(1)
+  u8arr[0] = +value
+  // yep, 254 extra bits, for cost of uniformity/simplicity
+  // for rest of the types
+  return u8arr
+}
+
+const decodeBool = (buf: Uint8Array<ArrayBufferLike>) => {
+  return !!buf[0]
+}
+
 const encodeNumber = (value: number) => {
   const buf = new ArrayBuffer(8)
   new DataView(buf).setFloat64(0, value, true)
@@ -58,18 +70,18 @@ const decodeString = (buf: Uint8Array<ArrayBufferLike>) => {
   return decoder.decode(buf)
 }
 
-const encodeObject = (obj: object) => {
-  if (!isSerializable(obj)) throw new Error('e_obj_nonserializable')
+const encodeObject = (value: object) => {
+  if (!isSerializable(value)) throw new Error('e_obj_nonserializable')
 
-  return encodeString(JSON.stringify(obj))
+  return encodeString(JSON.stringify(value))
 }
 
 const decodeObject = (buf: Uint8Array<ArrayBufferLike>) => {
   return JSON.parse(decodeString(buf))
 }
 
-const encodeDate = (date: Date) => {
-  const ms = date.getTime()
+const encodeDate = (value: Date) => {
+  const ms = value.getTime()
   return encodeNumber(ms)
 }
 
@@ -79,7 +91,7 @@ const decodeDate = (buf: Uint8Array<ArrayBufferLike>) => {
 }
 
 const getTypeAndBuffer = (value: Value): [ValueType, Uint8Array<ArrayBuffer>] => {
-  if (typeof value === 'boolean') throw new Error('e_not_implemented')
+  if (typeof value === 'boolean') return [ValueType.Bool, encodeBool(value)]
   if (typeof value === 'number') {
     if (!isNaN(value)) return [ValueType.F64, encodeNumber(value)]
   }
@@ -110,7 +122,7 @@ const get = (key: string) => {
 
   const vtn = vtFromBuf(packedEntry[0])
   const buf = packedEntry.slice(1)
-  if (vtn === ValueType.Bool) throw new Error('e_not_implemented')
+  if (vtn === ValueType.Bool) return decodeBool(buf)
   if (vtn === ValueType.F64) return decodeNumber(buf)
   if (vtn === ValueType.Str) return decodeString(buf)
   if (vtn === ValueType.Obj) return decodeObject(buf)
@@ -126,18 +138,11 @@ const initIntervalCleanup = () => {
 }
 
 const debug = async () => {
-  set('a0', 120, 100)
-  console.log(get('a0'))
+  set('b', true, 100)
+  console.log(get('b'))
 
-  const a = { a: '23', b: 24 }
-  console.log(a)
-
-  set('a', a, 100)
-  console.log('gi')
-  console.log(get('a'))
-
-  set('d', new Date('1993'), 100)
-  console.log(get('d'))
+  set('b', false, 100)
+  console.log(get('b'))
 
   close()
 }
