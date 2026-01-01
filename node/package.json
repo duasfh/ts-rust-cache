@@ -2,11 +2,16 @@
   "name": "ltsrust-cache",
   "author": "duasfh",
   "version": "0.1.0",
-  "scripts": {
+  "type": "module",
+  "license": "ISC",
+  "scripts": {},
+  "packageManager": "pnpm@10.21.0",
+  "devDependencies": {
+    "@types/node": "^25.0.3"
   },
   "keywords": [
-    "library", "wasm", "rust", "cache", "shared", "shared memory"
-  ],
-  "license": "ISC",
-  "packageManager": "pnpm@10.21.0"
+    "rust",
+    "wasm",
+    "cache"
+  ]
 }
