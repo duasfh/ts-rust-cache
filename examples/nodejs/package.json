@@ -11,7 +11,7 @@
   "license": "ISC",
   "packageManager": "pnpm@10.21.0",
   "dependencies": {
-    "ts-rust-cache": "../../node"
+    "@duasfh/ts-rust-cache": "^0.1.0"
   },
   "devDependencies": {
     "tsx": "^4.21.0"

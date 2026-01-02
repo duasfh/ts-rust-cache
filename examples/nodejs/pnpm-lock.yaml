@@ -8,15 +8,18 @@ importers:
 
   .:
     dependencies:
-      ts-rust-cache:
-        specifier: ../../node
-        version: link:../../node
+      '@duasfh/ts-rust-cache':
+        specifier: ^0.1.0
+        version: 0.1.0
     devDependencies:
       tsx:
         specifier: ^4.21.0
         version: 4.21.0
 
 packages:
+
+  '@duasfh/ts-rust-cache@0.1.0':
+    resolution: {integrity: sha512-mYbw0D10w3BbBxU0sg1JNaKsjtijWL++34d2wIFfPrURljXppb7Dn8S+gcFIUnE+eFnsQ1nWaUHm93mN40m4Rw==, tarball: https://npm.pkg.github.com/download/@duasfh/ts-rust-cache/0.1.0/deec8e41f6e4ccfcce9d12d08b8ae7f23d199d37}
 
   '@esbuild/aix-ppc64@0.27.2':
     resolution: {integrity: sha512-GZMB+a0mOMZs4MpDbj8RJp4cw+w1WV5NYD6xzgvzUJ5Ek2jerwfO2eADyI6ExDSUED+1X8aMbegahsJi+8mgpw==}
@@ -187,6 +190,9 @@ packages:
   get-tsconfig@4.13.0:
     resolution: {integrity: sha512-1VKTZJCwBrvbd+Wn3AOgQP/2Av+TfTCOlE4AcRJE72W1ksZXbAx8PPBR9RzgTeSPzlPMHrbANMH3LbltH73wxQ==}
 
+  ms@2.1.3:
+    resolution: {integrity: sha512-6FlzubTLZG3J2a/NVCAleEhjzq5oxgHyaCU9yYXvcLsvoVaHJq/s5xXI6/XXP6tz7R9xAOtHnSO/tXtF3WRTlA==}
+
   resolve-pkg-maps@1.0.0:
     resolution: {integrity: sha512-seS2Tj26TBVOC2NIc2rOe2y2ZO7efxITtLZcGSOnHHNOQ7CkiUBfw0Iw2ck6xkIhPwLhKNLS8BO+hEpngQlqzw==}
 
@@ -196,6 +202,10 @@ packages:
     hasBin: true
 
 snapshots:
+
+  '@duasfh/ts-rust-cache@0.1.0':
+    dependencies:
+      ms: 2.1.3
 
   '@esbuild/aix-ppc64@0.27.2':
     optional: true
@@ -310,6 +320,8 @@ snapshots:
   get-tsconfig@4.13.0:
     dependencies:
       resolve-pkg-maps: 1.0.0
+
+  ms@2.1.3: {}
 
   resolve-pkg-maps@1.0.0: {}
 

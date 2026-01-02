@@ -1,4 +1,4 @@
-import { cache } from "ts-rust-cache"
+import { cache } from "@duasfh/ts-rust-cache"
 
 const main = async () => {
   cache.set('a', '23', '0.5s')
