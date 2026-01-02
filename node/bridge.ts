@@ -1,5 +1,6 @@
 import rs from './pkg/ltsrust_cache.js'
-import { isSerializable } from './utils.js'
+import { isSerializable, ms } from './utils.js'
+import type { StringValue as MsStringValue } from 'ms'
 
 type Value = boolean | number | string | object | Date
 
@@ -108,17 +109,21 @@ const decodeFMap: Record<ValueType, (buf: Uint8Array<ArrayBufferLike>) => Value>
   [ValueType.Date]: decodeDate,
 }
 
-const set = (
+const set: {
+  (key: string, value: Value, /** String for 'ms' library. @example '2m' */ ttl: MsStringValue): void;
+  (key: string, value: Value, /** Milliseconds, integer */ ttl_ms: number): void;
+} = (
   key: string,
   value: Value,
-  /** ms */
-  ttl: number
+  ttl: number | MsStringValue
 ) => {
   if (!cleanupInterval) throw new Error('cache \'set\' is called after closing.')
 
+  const ttl_ms = typeof ttl === 'number' ? ttl : ms(ttl)
+
   const [vt, u8arr] = getTypeAndBuffer(value)
 
-  rs.set(key, u8arr, vt, ttl)
+  rs.set(key, u8arr, vt, ttl_ms)
 }
 
 const get = (key: string) => {
