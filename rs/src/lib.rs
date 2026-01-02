@@ -5,6 +5,7 @@ use std::{
 use wasm_bindgen::prelude::*;
 
 const MAX_MEMORY_MB: usize = 128;
+const MAX_MEMORY_B: usize = MAX_MEMORY_MB * 1024 * 1024;
 
 #[wasm_bindgen]
 extern "C" {
@@ -66,7 +67,7 @@ pub fn set(key: String, value: Vec<u8>, t: u8, ttl: f64) {
   let vt = convert_u8_to_vt(t);
 
   let next_size = unsafe { MEM_USAGE + est_entry_size_int(&key, &value) };
-  if next_size > MAX_MEMORY_MB { panic!("e_max_mem_reached"); }
+  if next_size > MAX_MEMORY_B { panic!("e_max_mem_reached"); }
 
   let new_struct = CacheEntry {
     vt,

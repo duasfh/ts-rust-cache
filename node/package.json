@@ -1,7 +1,7 @@
 {
   "name": "@duasfh/ts-rust-cache",
   "author": "duasfh",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "license": "ISC",
   "packageManager": "pnpm@10.21.0",
