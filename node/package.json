@@ -1,21 +1,30 @@
 {
-  "name": "ltsrust-cache",
+  "name": "ts-rust-cache",
   "author": "duasfh",
   "version": "0.1.0",
   "type": "module",
   "license": "ISC",
-  "scripts": {},
   "packageManager": "pnpm@10.21.0",
+  "scripts": {
+    "build-pre": "cd ../rs && rm -rf ./pkg && wasm-pack build --target nodejs",
+    "build": "pnpm build-pre && rm -rf ./dist && tsc && cp -r ./pkg/ ./dist/pkg"
+  },
   "dependencies": {
     "ms": "^2.1.3"
   },
   "devDependencies": {
     "@types/ms": "^2.1.0",
-    "@types/node": "^25.0.3"
+    "@types/node": "^25.0.3",
+    "typescript": "^5.9.3"
   },
   "keywords": [
     "rust",
     "wasm",
     "cache"
-  ]
+  ],
+  "main": "dist/bridge.js",
+  "types": "dist/bridge.d.ts",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  }
 }

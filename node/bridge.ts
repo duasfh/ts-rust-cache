@@ -1,4 +1,4 @@
-import rs from './pkg/ltsrust_cache.js'
+import rs from './pkg/ts_rust_cache.js'
 import { isSerializable, ms } from './utils.js'
 import type { StringValue as MsStringValue } from 'ms'
 
