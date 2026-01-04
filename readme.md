@@ -34,6 +34,10 @@ Additionally:
 
 Lifecycle:
 - close
-> `close` is typically only needed for cli applications
+> `close` is typically only needed for cli applications or tests
 
 See more at [examples](./examples/nodejs/index.ts)
+
+### Notes
+
+- When storing an object, nested dates (`{ date: new Date() }`) will result in the returned date string (`{ date: "0001-12-31T:01:01:01.000Z" }`)

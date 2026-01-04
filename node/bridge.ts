@@ -1,5 +1,5 @@
-import rs from './pkg/ts_rust_cache.js'
-import { isSerializable, ms } from './utils.js'
+import rs from './pkg/ts_rust_cache'
+import { isSerializable, ms } from './utils'
 import type { StringValue as MsStringValue } from 'ms'
 
 type Value = boolean | number | string | object | Date
@@ -138,6 +138,7 @@ const get = (key: string) => {
 }
 
 const initIntervalCleanup = () => {
+  clearInterval(cleanupInterval)
   cleanupInterval = setInterval(() => {
     rs.cleanup()
   }, 60000)
@@ -166,4 +167,5 @@ export const cache = {
    * @note Does not dispose wasm instance.
    * */
   close,
+  _initIntervalCleanup: initIntervalCleanup,
 }
