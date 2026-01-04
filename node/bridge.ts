@@ -109,8 +109,8 @@ const decodeFMap: Record<ValueType, (buf: Uint8Array<ArrayBufferLike>) => Value>
   [ValueType.Date]: decodeDate,
 }
 
-function set<CD extends CacheDesc, K = keyof CD>(key: K, value: Value, /** String for 'ms' library. @example '2m' */ ttl: MsStringValue): void
-function set<CD extends CacheDesc, K = keyof CD>(key: K, value: Value, /** Milliseconds, integer */ ttl_ms: number): void
+function set<CD extends CacheDesc, K = keyof CD>(key: K, value: Value, /** String for 'ms' library. Example: `'2m'` */ ttl: MsStringValue): void
+function set<CD extends CacheDesc, K = keyof CD>(key: K, value: Value, /** Milliseconds */ ttl_ms: number): void
 function set<CD extends CacheDesc, K = keyof CD>(
   key: K,
   value: Value,
