@@ -25,7 +25,7 @@ yarn add @duasfh/ts-rust-cache
 It has pretty standard cache api:
 - set
 - get
-- del
+- delete
 - clear
 
 Additionally:
@@ -37,6 +37,43 @@ Lifecycle:
 > `close` is typically only needed for cli applications or tests
 
 See more at [examples](./examples/nodejs/index.ts)
+
+### Typescript
+
+Example of type usage:
+
+```typescript
+type Cache = {
+  'a': number
+  'other-static-key': string
+} & {
+  [K in `email-verification-${string}`]: string
+} & {
+  [K in `other-dynamic-key-${number}-${string}`]: Date
+}
+
+export const cache = init<Cache>()
+```
+
+And use that exported `cache` in your app files.
+Type examples:
+
+```typescript
+cache.set('a', '1', '15m')  // -> Error: Argument of type 'string' is not assignable to parameter of type 'number'
+cache.set('a', 1, '15m')  // -> Correct
+
+const a = cache.get('a')
+// -> a: number | undefined
+
+cache.set('email-verification', 1, '15m')  // -> Error: Argument of type '"email-verification"' is not assignable to parameter of type '`email-verification-${string}` | ...
+cache.set('email-verification-123', 1, '15m')  // -> Error: Argument of type 'number' is not assignable to parameter of type 'string'
+cache.set('email-verification-123', '123123', '15m')  // -> Correct
+
+const date = cache.get('other-dynamic-key-123-aaa')
+// -> date: Date | undefined
+```
+
+See more at [examples](./examples/typing/cache.ts)
 
 ### Notes
 

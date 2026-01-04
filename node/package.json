@@ -1,7 +1,7 @@
 {
   "name": "@duasfh/ts-rust-cache",
   "author": "duasfh",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "type": "module",
   "license": "ISC",
   "packageManager": "pnpm@10.21.0",
@@ -26,8 +26,8 @@
     "wasm",
     "cache"
   ],
-  "main": "dist/bridge.js",
-  "types": "dist/bridge.d.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "files": [
     "dist",
     "dist/pkg"
