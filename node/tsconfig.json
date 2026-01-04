@@ -13,5 +13,5 @@
     "outDir": "dist",
     "declaration": true,
   },
-  "include": ["./*.ts", "./*.d.ts", "./*.js"]
+  "include": ["./*.ts", "./*.d.ts", "./*.js", "**/*.test.ts"]
 }
