@@ -136,7 +136,7 @@ describe('bridge', () => {
       c: { a: '25' },
     }
 
-    it('it must return equal object, but different pointer', () => {
+    it('it must return identical object, but not equal', () => {
       cache.set('a', testObject, '1s')
       const value = cache.get('a') as typeof testObject
 
