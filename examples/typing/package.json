@@ -1,0 +1,13 @@
+{
+  "name": "typing",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "keywords": [],
+  "dependencies": {
+    "@duasfh/ts-rust-cache": "^0.2.0"
+  },
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.21.0"
+}

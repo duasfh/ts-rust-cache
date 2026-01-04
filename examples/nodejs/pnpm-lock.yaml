@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@duasfh/ts-rust-cache':
-        specifier: ^0.1.0
-        version: 0.1.0
+        specifier: ^0.2.0
+        version: 0.2.0
     devDependencies:
       tsx:
         specifier: ^4.21.0
@@ -18,8 +18,8 @@ importers:
 
 packages:
 
-  '@duasfh/ts-rust-cache@0.1.0':
-    resolution: {integrity: sha512-mYbw0D10w3BbBxU0sg1JNaKsjtijWL++34d2wIFfPrURljXppb7Dn8S+gcFIUnE+eFnsQ1nWaUHm93mN40m4Rw==, tarball: https://npm.pkg.github.com/download/@duasfh/ts-rust-cache/0.1.0/deec8e41f6e4ccfcce9d12d08b8ae7f23d199d37}
+  '@duasfh/ts-rust-cache@0.2.0':
+    resolution: {integrity: sha512-FQmIimSVYGTCChsT2rn+wKxnoNha1ZgnGoi56MLWmGKi2B8sOJZ1K8ur0HZiI19DDKcgUvnV1LdG7oVxKwmqHA==, tarball: https://npm.pkg.github.com/download/@duasfh/ts-rust-cache/0.2.0/f2082ba8ce2caefcaa95d96ad47882c14031b17e}
 
   '@esbuild/aix-ppc64@0.27.2':
     resolution: {integrity: sha512-GZMB+a0mOMZs4MpDbj8RJp4cw+w1WV5NYD6xzgvzUJ5Ek2jerwfO2eADyI6ExDSUED+1X8aMbegahsJi+8mgpw==}
@@ -203,7 +203,7 @@ packages:
 
 snapshots:
 
-  '@duasfh/ts-rust-cache@0.1.0':
+  '@duasfh/ts-rust-cache@0.2.0':
     dependencies:
       ms: 2.1.3
 
