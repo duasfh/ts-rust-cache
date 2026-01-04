@@ -25,7 +25,7 @@ yarn add @duasfh/ts-rust-cache
 It has pretty standard cache api:
 - set
 - get
-- del
+- delete
 - clear
 
 Additionally:

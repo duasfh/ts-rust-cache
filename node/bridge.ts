@@ -2,7 +2,9 @@ import rs from './pkg/ts_rust_cache'
 import { isSerializable, ms } from './utils'
 import type { StringValue as MsStringValue } from 'ms'
 
-type Value = boolean | number | string | object | Date
+export type Value = boolean | number | string | object | Date
+
+export type CacheDesc = Record<string, Value>
 
 enum ValueType {
   Bool = 0,
@@ -33,8 +35,6 @@ const vtFromBuf = (bufEl: number): ValueType => {
 const encodeBool = (value: boolean) => {
   const u8arr = new Uint8Array(1)
   u8arr[0] = +value
-  // yep, 254 extra bits, for cost of uniformity/simplicity
-  // for rest of the types
   return u8arr
 }
 
@@ -109,32 +109,35 @@ const decodeFMap: Record<ValueType, (buf: Uint8Array<ArrayBufferLike>) => Value>
   [ValueType.Date]: decodeDate,
 }
 
-const set: {
-  (key: string, value: Value, /** String for 'ms' library. @example '2m' */ ttl: MsStringValue): void;
-  (key: string, value: Value, /** Milliseconds, integer */ ttl_ms: number): void;
-} = (
-  key: string,
+function set<CD extends CacheDesc, K = keyof CD>(key: K, value: Value, /** String for 'ms' library. @example '2m' */ ttl: MsStringValue): void
+function set<CD extends CacheDesc, K = keyof CD>(key: K, value: Value, /** Milliseconds, integer */ ttl_ms: number): void
+function set<CD extends CacheDesc, K = keyof CD>(
+  key: K,
   value: Value,
-  ttl: number | MsStringValue
-) => {
-  if (!cleanupInterval) throw new Error('cache \'set\' is called after closing.')
+  ttl: number | MsStringValue,
+) {
+  if (!cleanupInterval) throw new Error('e_uninitialized')
 
   const ttl_ms = typeof ttl === 'number' ? ttl : ms(ttl)
 
   const [vt, u8arr] = getTypeAndBuffer(value)
 
-  rs.set(key, u8arr, vt, ttl_ms)
+  rs.set(key as string, u8arr, vt, ttl_ms)
 }
 
-const get = (key: string) => {
-  const packedEntry = rs.get(key)
+const get = <CD extends CacheDesc, K extends keyof CD = keyof CD> (key: K): CD[K] | undefined => {
+  const packedEntry = rs.get(key as string)
   if (!packedEntry) return undefined
 
   const vtn = vtFromBuf(packedEntry[0])
   const buf = packedEntry.slice(1)
 
   const decodeF = decodeFMap[vtn]
-  return decodeF(buf)
+  return decodeF(buf) as CD[K]
+}
+
+const del = <CD extends CacheDesc, K extends keyof CD> (key: K) => {
+  return rs.del(key as string)
 }
 
 const initIntervalCleanup = () => {
@@ -154,7 +157,7 @@ initIntervalCleanup()
 export const cache = {
   get,
   set,
-  del: rs.del,
+  delete: del,
   clear: rs.clear,
 
   /** @description Current used memory of cache. Includes expired entries, which were not yet picked up by cleanup. */
@@ -169,3 +172,4 @@ export const cache = {
   close,
   _initIntervalCleanup: initIntervalCleanup,
 }
+
