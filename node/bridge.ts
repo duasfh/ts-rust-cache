@@ -14,22 +14,22 @@ enum ValueType {
   Date = 17,
 }
 
-const vtMap = {
+const valueTypeMap = {
   0: ValueType.Bool,
   1: ValueType.F64,
   2: ValueType.Str,
   16: ValueType.Obj,
   17: ValueType.Date,
-} as const
+} as const satisfies Record<number, ValueType>
 
 let cleanupInterval: NodeJS.Timeout | undefined
 
 const isValueType = (vt: number): vt is ValueType =>
   !!ValueType[vt]
 
-const vtFromBuf = (bufEl: number): ValueType => {
-  if (!isValueType(bufEl)) throw new Error('Cache corrupted state. Cannot extract type.')
-  return vtMap[bufEl]
+const valueTypeFromBuffer = (typeByte: number): ValueType => {
+  if (!isValueType(typeByte)) throw new Error('Cache corrupted state. Cannot extract type.')
+  return valueTypeMap[typeByte]
 }
 
 const encodeBool = (value: boolean) => {
@@ -43,9 +43,9 @@ const decodeBool = (buf: Uint8Array<ArrayBufferLike>) => {
 }
 
 const encodeNumber = (value: number) => {
-  const buf = new ArrayBuffer(8)
-  new DataView(buf).setFloat64(0, value, true)
-  const u8arr = new Uint8Array(buf)
+  const buffer = new ArrayBuffer(8)
+  new DataView(buffer).setFloat64(0, value, true)
+  const u8arr = new Uint8Array(buffer)
   return u8arr
 }
 
@@ -101,13 +101,13 @@ const getTypeAndBuffer = (value: Value): [ValueType, Uint8Array<ArrayBuffer>] =>
   throw new Error('e_unsupported_type')
 }
 
-const decodeFMap: Record<ValueType, (buf: Uint8Array<ArrayBufferLike>) => Value> = {
+const decoderByTypeMap = {
   [ValueType.Bool]: decodeBool,
   [ValueType.F64]: decodeNumber,
   [ValueType.Str]: decodeString,
   [ValueType.Obj]: decodeObject,
   [ValueType.Date]: decodeDate,
-}
+} as const satisfies Record<ValueType, (buf: Uint8Array<ArrayBufferLike>) => Value>
 
 function set<CD extends CacheDesc, K = keyof CD>(key: K, value: Value, /** String for 'ms' library. Example: `'2m'` */ ttl: MsStringValue): void
 function set<CD extends CacheDesc, K = keyof CD>(key: K, value: Value, /** Milliseconds */ ttl_ms: number): void
@@ -120,20 +120,20 @@ function set<CD extends CacheDesc, K = keyof CD>(
 
   const ttl_ms = typeof ttl === 'number' ? ttl : ms(ttl)
 
-  const [vt, u8arr] = getTypeAndBuffer(value)
+  const [valueType, u8arr] = getTypeAndBuffer(value)
 
-  rs.set(key as string, u8arr, vt, ttl_ms)
+  rs.set(key as string, u8arr, valueType, ttl_ms)
 }
 
 const get = <CD extends CacheDesc, K extends keyof CD = keyof CD> (key: K): CD[K] | undefined => {
   const packedEntry = rs.get(key as string)
   if (!packedEntry) return undefined
 
-  const vtn = vtFromBuf(packedEntry[0])
-  const buf = packedEntry.slice(1)
+  const valueType = valueTypeFromBuffer(packedEntry[0])
+  const payloadBuffer = packedEntry.slice(1)
 
-  const decodeF = decodeFMap[vtn]
-  return decodeF(buf) as CD[K]
+  const decoder = decoderByTypeMap[valueType]
+  return decoder(payloadBuffer) as CD[K]
 }
 
 const del = <CD extends CacheDesc, K extends keyof CD> (key: K) => {
