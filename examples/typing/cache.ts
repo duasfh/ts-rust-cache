@@ -1,7 +1,7 @@
 import { init } from '@duasfh/ts-rust-cache'
 
 type Cache = {
-  'a': number
+  'some-key': number
   'other-static-key': string
 } & {
   [K in `email-verification-${string}`]: string
