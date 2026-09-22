@@ -44,9 +44,10 @@ Example of type usage:
 
 ```typescript
 type Cache = {
-  'a': number
+  'some-key': number
   'other-static-key': string
 } & {
+  // Example of a dynamic key:
   [K in `email-verification-${string}`]: string
 } & {
   [K in `other-dynamic-key-${number}-${string}`]: Date
@@ -59,10 +60,10 @@ And use that exported `cache` in your app files.
 Type examples:
 
 ```typescript
-cache.set('a', '1', '15m')  // -> Error: Argument of type 'string' is not assignable to parameter of type 'number'
-cache.set('a', 1, '15m')  // -> Correct
+cache.set('some-key', '1', '15m')  // -> Error: Argument of type 'string' is not assignable to parameter of type 'number'
+cache.set('some-key', 1, '15m')  // -> Correct
 
-const a = cache.get('a')
+const a = cache.get('some-key')
 // -> a: number | undefined
 
 cache.set('email-verification', 1, '15m')  // -> Error: Argument of type '"email-verification"' is not assignable to parameter of type '`email-verification-${string}` | ...
